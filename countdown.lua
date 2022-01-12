@@ -6,6 +6,7 @@ cur_seconds   = 0
 last_text     = ""
 stop_text     = ""
 activated     = false
+start_rec_on_end = false
 
 hotkey_id     = obs.OBS_INVALID_HOTKEY_ID
 
@@ -19,6 +20,11 @@ function set_time_text()
 
 	if cur_seconds < 1 then
 		text = stop_text
+
+		-- Start recording if requested and not already recording
+		if start_rec_on_end and not obs.obs_frontend_recording_active() then
+			obs.obs_frontend_recording_start()
+		end
 	end
 
 	if text ~= last_text then
@@ -122,6 +128,7 @@ function script_properties()
 
 	obs.obs_properties_add_text(props, "stop_text", "Final Text", obs.OBS_TEXT_DEFAULT)
 	obs.obs_properties_add_button(props, "reset_button", "Reset Timer", reset_button_clicked)
+	obs.obs_properties_add_bool(props, "start_rec_on_end", "Start recording on end")
 
 	return props
 end
@@ -139,6 +146,7 @@ function script_update(settings)
 	total_seconds = obs.obs_data_get_int(settings, "duration") * 60
 	source_name = obs.obs_data_get_string(settings, "source")
 	stop_text = obs.obs_data_get_string(settings, "stop_text")
+	start_rec_on_end = obs.obs_data_get_string(settings, "start_rec_on_end")
 
 	reset(true)
 end
@@ -147,6 +155,7 @@ end
 function script_defaults(settings)
 	obs.obs_data_set_default_int(settings, "duration", 5)
 	obs.obs_data_set_default_string(settings, "stop_text", "Starting soon (tm)")
+	obs.obs_data_set_default_bool(settings, "start_rec_on_end", false)
 end
 
 -- A function named script_save will be called when the script is saved
