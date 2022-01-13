@@ -7,6 +7,9 @@ last_text     = ""
 stop_text     = ""
 activated     = false
 start_rec_on_end = false
+set_vol_on_end = false
+audio_track    = ""
+volume_target = -40
 
 hotkey_id     = obs.OBS_INVALID_HOTKEY_ID
 
@@ -24,6 +27,12 @@ function set_time_text()
 		-- Start recording if requested and not already recording
 		if start_rec_on_end and not obs.obs_frontend_recording_active() then
 			obs.obs_frontend_recording_start()
+		end
+
+		-- Lower volume on end
+		if set_vol_on_end then
+			local source = obs.obs_get_source_by_name(audio_track)
+			obs.obs_source_set_volume(source, math.pow(2,(volume_target/6)) )
 		end
 	end
 
@@ -128,7 +137,27 @@ function script_properties()
 
 	obs.obs_properties_add_text(props, "stop_text", "Final Text", obs.OBS_TEXT_DEFAULT)
 	obs.obs_properties_add_button(props, "reset_button", "Reset Timer", reset_button_clicked)
+	-- Recordings
 	obs.obs_properties_add_bool(props, "start_rec_on_end", "Start recording on end")
+	-- Volume
+		-- Checkbox
+	obs.obs_properties_add_bool(props, "set_vol_on_end", "Lower volume on end")
+		-- Mixers
+	local a = obs.obs_properties_add_list(props, "audio_track", "Audio track", obs.OBS_COMBO_TYPE_EDITABLE, obs.OBS_COMBO_FORMAT_STRING)
+	local sources = obs.obs_enum_sources()
+	if sources ~= nil then
+		for _, source in ipairs(sources) do
+			source_channels = (bit.band(obs.obs_source_get_audio_mixers(source), bit.bor(1,bit.bor(2,bit.bor(3,bit.bor(4,bit.bor(5,6))))) ))
+			if source_channels > 0 then
+				source_id = obs.obs_source_get_unversioned_id(source)
+				local name = obs.obs_source_get_name(source)
+				obs.obs_property_list_add_string(a, name, name)
+			end
+		end
+	end
+	obs.source_list_release(sources)
+		-- Target volume
+	obs.obs_properties_add_int(props, "volume_target", "Target volume", -90, 0, 0.1)
 
 	return props
 end
@@ -147,6 +176,9 @@ function script_update(settings)
 	source_name = obs.obs_data_get_string(settings, "source")
 	stop_text = obs.obs_data_get_string(settings, "stop_text")
 	start_rec_on_end = obs.obs_data_get_string(settings, "start_rec_on_end")
+	set_vol_on_end = obs.obs_data_get_string(settings, "set_vol_on_end")
+	audio_track = obs.obs_data_get_string(settings, "audio_track")
+	volume_target = obs.obs_data_get_int(settings, "volume_target")
 
 	reset(true)
 end
@@ -156,6 +188,11 @@ function script_defaults(settings)
 	obs.obs_data_set_default_int(settings, "duration", 5)
 	obs.obs_data_set_default_string(settings, "stop_text", "Starting soon (tm)")
 	obs.obs_data_set_default_bool(settings, "start_rec_on_end", false)
+	-- Audio
+		--	Checkbox 
+	obs.obs_data_set_default_bool(settings, "set_vol_on_end", false)
+		-- Target volume
+	obs.obs_data_set_default_int(settings, "volume_target", -40)
 end
 
 -- A function named script_save will be called when the script is saved
