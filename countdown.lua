@@ -176,7 +176,7 @@ function script_update(settings)
 	source_name = obs.obs_data_get_string(settings, "source")
 	stop_text = obs.obs_data_get_string(settings, "stop_text")
 	start_rec_on_end = obs.obs_data_get_bool(settings, "start_rec_on_end")
-	set_vol_on_end = obs.obs_data_get_string(settings, "set_vol_on_end")
+	set_vol_on_end = obs.obs_data_get_bool(settings, "set_vol_on_end")
 	audio_track = obs.obs_data_get_string(settings, "audio_track")
 	volume_target = obs.obs_data_get_int(settings, "volume_target")
 
