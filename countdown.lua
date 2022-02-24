@@ -15,6 +15,7 @@ transition_name = ""
 transition_at_end = false
 transition_destination_scene = ""
 transition_time = 300
+triggered = false
 
 hotkey_id     = obs.OBS_INVALID_HOTKEY_ID
 
@@ -27,6 +28,7 @@ function set_time_text()
 	local text          = string.format("%02d:%02d", minutes, seconds)
 
 	if cur_seconds < 1 then
+		triggered = true
 		text = stop_text
 
 		-- Start recording if requested and not already recording
@@ -43,11 +45,21 @@ function set_time_text()
 		-- Transition
 		if transition_at_end then
 			local old_transition = obs.obs_frontend_get_current_transition()
+			-- https://github.com/obsproject/obs-studio/issues/5313
+			--local old_transition_duration = obs.obs_frontend_get_transition_duration()
+
 			local transition = get_transition_by_name(transition_name)
+			--print(obs.obs_source_get_name(transition) .. transition_time)
+			--obs.obs_frontend_set_current_transition(transition)
 			obs.obs_frontend_set_current_transition(transition)
-			local desntination_scene = obs.obs_get_source_by_name(transition_destination_scene)
-			obs.obs_transition_start(transition, obs.OBS_TRANSITION_MODE_AUTO, transition_time, desntination_scene)
-			obs.obs_frontend_set_current_transition(old_transition)
+			obs.os_sleep_ms(100) 
+			--obs.obs_frontend_set_current_transition(transition)
+			--obs.obs_frontend_set_transition_duration(transition_time)
+			local destination_scene = obs.obs_get_source_by_name(transition_destination_scene)
+			obs.obs_transition_start(transition, obs.OBS_TRANSITION_MODE_AUTO, transition_time, destination_scene)
+			--obs.os_sleep_ms(transition_time+500) 
+			--obs.obs_frontend_set_current_transition(old_transition)
+			--obs.obs_frontend_set_transition_duration(old_transition_duration)
 		end
 	end
 
@@ -79,7 +91,7 @@ function get_transition_by_name(name)
 end
 
 function timer_callback()
-	cur_seconds = cur_seconds - 1
+	cur_seconds = cur_seconds - 10
 	if cur_seconds < 0 then
 		obs.remove_current_callback()
 		cur_seconds = 0
@@ -96,6 +108,7 @@ function activate(activating)
 	activated = activating
 
 	if activating then
+		triggered = false
 		cur_seconds = total_seconds
 		set_time_text()
 		obs.timer_add(timer_callback, 1000)
@@ -128,6 +141,7 @@ function reset(pressed)
 		return
 	end
 
+	triggered = false
 	activate(false)
 	local source = obs.obs_get_source_by_name(source_name)
 	if source ~= nil then
@@ -229,7 +243,7 @@ function script_update(settings)
 	set_vol_on_end = obs.obs_data_get_bool(settings, "set_vol_on_end")
 	audio_track = obs.obs_data_get_string(settings, "audio_track")
 	volume_target = obs.obs_data_get_int(settings, "volume_target")
-	transition_time = obs.obs_data_get_default_int(settings, "transition_time")
+	transition_time = obs.obs_data_get_int(settings, "transition_time")
 	transition_at_end = obs.obs_data_get_bool(settings, "transition_at_end")
 	transition_name = obs.obs_data_get_string(settings, "transition")
 	transition_destination_scene = obs.obs_data_get_string(settings, "transition_destination_scene")
