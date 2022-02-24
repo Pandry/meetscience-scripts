@@ -91,7 +91,7 @@ function get_transition_by_name(name)
 end
 
 function timer_callback()
-	cur_seconds = cur_seconds - 10
+	cur_seconds = cur_seconds - 1
 	if cur_seconds < 0 then
 		obs.remove_current_callback()
 		cur_seconds = 0
