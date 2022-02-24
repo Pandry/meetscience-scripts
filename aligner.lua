@@ -31,18 +31,10 @@ function ticker()
                     end
 
                     local group_item_source = obs.obs_sceneitem_get_source(group_item)
-                    local group_item_name = obs.obs_source_get_name(group_item_source)
-
-                    
-                    --print('found: ' .. group_item_name)
-                    --local pos = obs.vec2() -- x,y
-                    --obs.obs_sceneitem_get_pos(group_item, pos)
-
                     if firstIteration then
                         obs.obs_sceneitem_get_scale(group_item, newScale)
                         height = round(obs.obs_source_get_height(group_item_source) * newScale.x)
                         width = round(obs.obs_source_get_width(group_item_source) * newScale.y)
-                        --print('width='..width..'heigth='..height)
                     else
                         obs.obs_sceneitem_set_scale(group_item, newScale)
                     end
