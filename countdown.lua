@@ -11,6 +11,11 @@ set_vol_on_end = false
 audio_track    = ""
 volume_target = -40
 
+transition_name = ""
+transition_at_end = false
+transition_destination_scene = ""
+transition_time = 300
+
 hotkey_id     = obs.OBS_INVALID_HOTKEY_ID
 
 -- Function to set the time text
@@ -34,6 +39,16 @@ function set_time_text()
 			local source = obs.obs_get_source_by_name(audio_track)
 			obs.obs_source_set_volume(source, math.pow(2,(volume_target/6)) )
 		end
+
+		-- Transition
+		if transition_at_end then
+			local old_transition = obs.obs_frontend_get_current_transition()
+			local transition = get_transition_by_name(transition_name)
+			obs.obs_frontend_set_current_transition(transition)
+			local desntination_scene = obs.obs_get_source_by_name(transition_destination_scene)
+			obs.obs_transition_start(transition, obs.OBS_TRANSITION_MODE_AUTO, transition_time, desntination_scene)
+			obs.obs_frontend_set_current_transition(old_transition)
+		end
 	end
 
 	if text ~= last_text then
@@ -48,6 +63,19 @@ function set_time_text()
 	end
 
 	last_text = text
+end
+
+function get_transition_by_name(name) 
+	local obs_list = obs.obs_frontend_get_transitions()
+	for _, transition in pairs(obs_list) do
+		local transition_name = obs.obs_source_get_name(transition)
+		if transition_name == name then
+			obs.source_list_release(obs_list)
+			return transition
+		end
+	end
+	obs.source_list_release(obs_list)
+	return nil
 end
 
 function timer_callback()
@@ -159,6 +187,28 @@ function script_properties()
 		-- Target volume
 	obs.obs_properties_add_int(props, "volume_target", "Target volume", -90, 0, 0.1)
 
+	-- Transition
+	obs.obs_properties_add_bool(props, "transition_at_end", "Enable transition on end")
+	obs.obs_properties_add_int(props, "transition_time", "Transition time", 0, 5000, 100)
+
+	local transitions_list = obs.obs_properties_add_list(props, "transition", "Transition", obs.OBS_COMBO_TYPE_EDITABLE, obs.OBS_COMBO_FORMAT_STRING)
+	local obs_list = obs.obs_frontend_get_transitions()
+	for _, transition in pairs(obs_list) do
+		local transition_name = obs.obs_source_get_name(transition)
+		obs.obs_property_list_add_string(transitions_list, transition_name, transition_name)
+	end
+	obs.source_list_release(obs_list)
+
+
+	local transition_destination_scene_list = obs.obs_properties_add_list(props, "transition_destination_scene", "Scene to transition to", obs.OBS_COMBO_TYPE_EDITABLE, obs.OBS_COMBO_FORMAT_STRING)
+	obs_list = obs.obs_frontend_get_scenes()
+	for _, scene in pairs(obs_list) do
+		local scene_name = obs.obs_source_get_name(scene)
+		obs.obs_property_list_add_string(transition_destination_scene_list, scene_name, scene_name)
+	end
+	obs.source_list_release(obs_list)
+
+
 	return props
 end
 
@@ -179,6 +229,10 @@ function script_update(settings)
 	set_vol_on_end = obs.obs_data_get_bool(settings, "set_vol_on_end")
 	audio_track = obs.obs_data_get_string(settings, "audio_track")
 	volume_target = obs.obs_data_get_int(settings, "volume_target")
+	transition_time = obs.obs_data_get_default_int(settings, "transition_time")
+	transition_at_end = obs.obs_data_get_bool(settings, "transition_at_end")
+	transition_name = obs.obs_data_get_string(settings, "transition")
+	transition_destination_scene = obs.obs_data_get_string(settings, "transition_destination_scene")
 
 	reset(true)
 end
@@ -191,8 +245,11 @@ function script_defaults(settings)
 	-- Audio
 		--	Checkbox 
 	obs.obs_data_set_default_bool(settings, "set_vol_on_end", false)
-		-- Target volume
+	-- Target volume
 	obs.obs_data_set_default_int(settings, "volume_target", -40)
+	-- Transition
+	obs.obs_data_set_default_int(settings, "transition_time", 300)
+	obs.obs_data_set_default_bool(settings, "transition_at_end", false)
 end
 
 -- A function named script_save will be called when the script is saved
